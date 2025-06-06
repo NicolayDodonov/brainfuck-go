@@ -9,107 +9,113 @@ import (
 
 // command in brainfuck
 const (
-	right     = '>'
-	left      = '<'
-	plus      = '+'
-	minus     = '-'
-	openLoop  = '['
-	closeLoop = ']'
-	print     = '.'
-	read      = ','
+	right        = '>'
+	left         = '<'
+	plus         = '+'
+	minus        = '-'
+	openLoop     = '['
+	closeLoop    = ']'
+	print        = '.'
+	read         = ','
+	memoryLength = 30000
 )
 
-// processor is interpreted brainfuck-program.
+// Processor is interpreted brainfuck-program.
 type Processor struct {
-	line           [30000]byte
-	addressPointer int
+	memory  [memoryLength]byte
+	address int
 }
 
+// Program is brainfuck-program.
 type Program struct {
-	code           []rune
-	programPointer int
-	len            int
+	code    []rune
+	pointer int
+	len     int
 }
 
-// make new Processor
+// New make new Processor.
 func New() *Processor {
 	return &Processor{
-		[30000]byte{},
+		[memoryLength]byte{},
 		0,
 	}
 }
 
-func (p *Processor) up() {
-	p.addressPointer++
-	if p.addressPointer >= 30000 {
-		p.addressPointer -= 30000
+// right increases the address cyclically.
+func (p *Processor) right() {
+	p.address++
+	if p.address >= memoryLength {
+		p.address -= memoryLength
 	}
 }
 
-func (p *Processor) down() {
-	p.addressPointer--
-	if p.addressPointer < 0 {
-		p.addressPointer = 30000 - p.addressPointer
+// left reduces the address cyclically.
+func (p *Processor) left() {
+	p.address--
+	if p.address < 0 {
+		p.address = memoryLength - p.address
 	}
 }
 
-// run - processor function to interpretation brainfuck-program.
+// Run interpretation brainfuck-program.
 func (p *Processor) Run(prog *Program) error {
-	for ; prog.programPointer < prog.len; prog.programPointer++ {
-		switch prog.code[prog.programPointer] {
+	for ; prog.pointer < prog.len; prog.pointer++ {
+		switch prog.code[prog.pointer] {
 		case right:
-			p.up()
+			p.right()
 		case left:
-			p.down()
+			p.left()
 		case plus:
-			p.line[p.addressPointer]++
+			p.memory[p.address]++
 		case minus:
-			p.line[p.addressPointer]--
+			p.memory[p.address]--
 		case openLoop:
-			if p.line[p.addressPointer] == 0 {
+			if p.memory[p.address] == 0 {
 				loop := 1
 				for loop != 0 {
-					prog.programPointer++
-					if p.line[p.addressPointer] == openLoop {
+					prog.pointer++
+					if p.memory[p.address] == openLoop {
 						loop++
 					}
-					if p.line[p.addressPointer] == closeLoop {
+					if p.memory[p.address] == closeLoop {
 						loop--
 					}
 				}
 			}
 		case closeLoop:
-			if p.line[p.addressPointer] != 0 {
+			if p.memory[p.address] != 0 {
 				loop := 1
 				for loop != 0 {
-					prog.programPointer--
-					if prog.code[prog.programPointer] == openLoop {
+					prog.pointer--
+					if prog.code[prog.pointer] == openLoop {
 						loop--
 					}
-					if prog.code[prog.programPointer] == closeLoop {
+					if prog.code[prog.pointer] == closeLoop {
 						loop++
 					}
 				}
 			}
 		case print:
-			fmt.Print(string(p.line[p.addressPointer]))
+			fmt.Print(string(p.memory[p.address]))
 		case read:
 			var value byte
 			_, err := fmt.Scanln(&value)
 			if err != nil {
-				return err
+				return fmt.Errorf("Invalid input: %s", err)
+			} else {
+				p.memory[p.address] = value
 			}
-			p.line[p.addressPointer] = value
+
 		}
 	}
 	return nil
 }
 
+// Load get brainfuck program from user and makes it interpretable.
 func Load() (*Program, error) {
 	// read path from console
 	var userPath string
 	_, err := fmt.Scan(&userPath)
-
 	if err != nil {
 		return nil, err
 	}
@@ -129,12 +135,10 @@ func Load() (*Program, error) {
 		return nil, err
 	}
 	p := &Program{
-		code:           bytes.Runes(rawProgram),
-		programPointer: 0,
+		code:    bytes.Runes(rawProgram),
+		pointer: 0,
 	}
 	p.len = len(p.code)
-
-	//clear program
 
 	return p, nil
 }

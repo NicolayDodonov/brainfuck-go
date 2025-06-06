@@ -3,27 +3,36 @@ package main
 import (
 	"brainfuck-go/processor"
 	"fmt"
-	"log"
 )
 
 func main() {
-
+	//Open and close handler
 	hello()
+	defer exit()
 
-	p, err := processor.Load()
+	//load program
+	program, err := processor.Load()
 	if err != nil {
-		log.Printf(err.Error())
+		fmt.Println("ERROR: ", err.Error())
 		return
 	}
-	proc := processor.New()
 
-	if err := proc.Run(p); err != nil {
-		log.Printf(err.Error())
+	//start interpretation
+	machine := processor.New()
+	if err := machine.Run(program); err != nil {
+		fmt.Println("ERROR: ", err.Error())
 	}
-
-	fmt.Scan()
 }
 
 func hello() {
-	fmt.Println("Hello User!")
+	fmt.Print("Hello User!\n" +
+		"It's a Brainfuck interpolator v1.0.0\n" +
+		"Make by Dodonov N.A.\n\n" +
+		"Please, entre path to code: ")
+}
+
+func exit() {
+	fmt.Print("\nPress enter to quit...")
+	var exit int
+	fmt.Scanln(&exit)
 }
