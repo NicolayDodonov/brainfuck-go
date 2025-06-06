@@ -1,6 +1,11 @@
-package main
+package processor
 
-import "fmt"
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"os"
+)
 
 // command in brainfuck
 const (
@@ -15,27 +20,32 @@ const (
 )
 
 // processor is interpreted brainfuck-program.
-type processor struct {
+type Processor struct {
 	line           [30000]byte
 	programPointer int
 }
 
-// make new processor
-func newProcessor() *processor {
-	return &processor{
+type Program struct {
+	code []rune
+	len  int
+}
+
+// make new Processor
+func New() *Processor {
+	return &Processor{
 		[30000]byte{},
 		0,
 	}
 }
 
-func (p *processor) up() {
+func (p *Processor) up() {
 	p.programPointer++
 	if p.programPointer >= 30000 {
 		p.programPointer -= 30000
 	}
 }
 
-func (p *processor) down() {
+func (p *Processor) down() {
 	p.programPointer--
 	if p.programPointer < 0 {
 		p.programPointer = 30000 - p.programPointer
@@ -43,7 +53,7 @@ func (p *processor) down() {
 }
 
 // run - processor function to interpretation brainfuck-program.
-func (p *processor) run(prog *program) error {
+func (p *Processor) Run(prog *Program) error {
 	for pointer := 0; pointer < prog.len; pointer++ {
 		switch prog.code[pointer] {
 		case right:
@@ -83,12 +93,46 @@ func (p *processor) run(prog *program) error {
 		case print:
 			fmt.Print(p.line[p.programPointer])
 		case read:
-			value, err := fmt.Scan()
+			var value byte
+			_, err := fmt.Scanln(value)
 			if err != nil {
 				return err
 			}
-			p.line[p.programPointer] = byte(value)
+			p.line[p.programPointer] = value
 		}
 	}
 	return nil
+}
+
+func Load() (*Program, error) {
+	// read path from console
+	var userPath string
+	_, err := fmt.Scanln(userPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// verification query
+	if len(userPath) == 0 {
+		return nil, errors.New("path is empty")
+	}
+	_, err = os.Stat(userPath)
+	if err != nil {
+		return nil, err
+	}
+
+	//read file
+	rawProgram, err := os.ReadFile(userPath)
+	if err != nil {
+		return nil, err
+	}
+	p := &Program{
+		code: bytes.Runes(rawProgram),
+	}
+	p.len = len(p.code)
+
+	//clear program
+
+	return p, nil
 }
