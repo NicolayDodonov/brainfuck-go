@@ -12,6 +12,7 @@ func main() {
 
 	p, err := processor.Load()
 	if err != nil {
+		log.Printf(err.Error())
 		return
 	}
 	proc := processor.New()
@@ -20,7 +21,7 @@ func main() {
 		log.Printf(err.Error())
 	}
 
-	fmt.Scanln()
+	fmt.Scan()
 }
 
 func hello() {

@@ -22,12 +22,13 @@ const (
 // processor is interpreted brainfuck-program.
 type Processor struct {
 	line           [30000]byte
-	programPointer int
+	addressPointer int
 }
 
 type Program struct {
-	code []rune
-	len  int
+	code           []rune
+	programPointer int
+	len            int
 }
 
 // make new Processor
@@ -39,66 +40,66 @@ func New() *Processor {
 }
 
 func (p *Processor) up() {
-	p.programPointer++
-	if p.programPointer >= 30000 {
-		p.programPointer -= 30000
+	p.addressPointer++
+	if p.addressPointer >= 30000 {
+		p.addressPointer -= 30000
 	}
 }
 
 func (p *Processor) down() {
-	p.programPointer--
-	if p.programPointer < 0 {
-		p.programPointer = 30000 - p.programPointer
+	p.addressPointer--
+	if p.addressPointer < 0 {
+		p.addressPointer = 30000 - p.addressPointer
 	}
 }
 
 // run - processor function to interpretation brainfuck-program.
 func (p *Processor) Run(prog *Program) error {
-	for pointer := 0; pointer < prog.len; pointer++ {
-		switch prog.code[pointer] {
+	for ; prog.programPointer < prog.len; prog.programPointer++ {
+		switch prog.code[prog.programPointer] {
 		case right:
 			p.up()
 		case left:
 			p.down()
 		case plus:
-			p.line[p.programPointer]++
+			p.line[p.addressPointer]++
 		case minus:
-			p.line[p.programPointer]--
+			p.line[p.addressPointer]--
 		case openLoop:
-			if p.line[p.programPointer] == 0 {
+			if p.line[p.addressPointer] == 0 {
 				loop := 1
 				for loop != 0 {
-					p.up()
-					if p.line[p.programPointer] == openLoop {
+					prog.programPointer++
+					if p.line[p.addressPointer] == openLoop {
 						loop++
 					}
-					if p.line[p.programPointer] == closeLoop {
+					if p.line[p.addressPointer] == closeLoop {
 						loop--
 					}
 				}
 			}
 		case closeLoop:
-			if p.line[p.programPointer] != 0 {
+			if p.line[p.addressPointer] != 0 {
 				loop := 1
 				for loop != 0 {
-					p.down()
-					if p.line[p.programPointer] == openLoop {
+					prog.programPointer--
+					if prog.code[prog.programPointer] == openLoop {
 						loop--
 					}
-					if p.line[p.programPointer] == closeLoop {
+					if prog.code[prog.programPointer] == closeLoop {
 						loop++
 					}
 				}
 			}
 		case print:
-			fmt.Print(p.line[p.programPointer])
+			fmt.Print(string(p.line[p.addressPointer]))
 		case read:
 			var value byte
-			_, err := fmt.Scanln(value)
+			_, err := fmt.Scanln(&value)
 			if err != nil {
 				return err
 			}
-			p.line[p.programPointer] = value
+			p.line[p.addressPointer] = value
 		}
 	}
 	return nil
@@ -107,7 +108,7 @@ func (p *Processor) Run(prog *Program) error {
 func Load() (*Program, error) {
 	// read path from console
 	var userPath string
-	_, err := fmt.Scanln(userPath)
+	_, err := fmt.Scan(&userPath)
 
 	if err != nil {
 		return nil, err
@@ -128,7 +129,8 @@ func Load() (*Program, error) {
 		return nil, err
 	}
 	p := &Program{
-		code: bytes.Runes(rawProgram),
+		code:           bytes.Runes(rawProgram),
+		programPointer: 0,
 	}
 	p.len = len(p.code)
 
